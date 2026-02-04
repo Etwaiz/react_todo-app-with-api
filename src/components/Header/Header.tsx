@@ -17,9 +17,7 @@ export const Header = forwardRef<HTMLInputElement, Props>(function Header(
 ) {
   const [title, setTitle] = useState('');
 
-  const isAllCompleted = activeTodosCount === 0;
-
-  const handleOnSubmitForm = (event: React.FormEvent) => {
+  const handleSubmitForm = (event: React.FormEvent) => {
     event.preventDefault();
 
     onCreateTodo(title)
@@ -30,25 +28,23 @@ export const Header = forwardRef<HTMLInputElement, Props>(function Header(
   };
 
   const handleToggleTodos = () => {
-    onToggleTodos(!isAllCompleted);
+    onToggleTodos(activeTodosCount !== 0);
   };
 
   return (
     <header className="todoapp__header">
-      {/* this button should have `active` class only if all todos are completed */}
       {allTodosCount > 0 && (
         <button
           type="button"
           className={classNames('todoapp__toggle-all', {
-            active: isAllCompleted,
+            active: activeTodosCount === 0,
           })}
           data-cy="ToggleAllButton"
           onClick={handleToggleTodos}
         />
       )}
 
-      {/* Add a todo on form submit */}
-      <form onSubmit={handleOnSubmitForm}>
+      <form onSubmit={handleSubmitForm}>
         <input
           ref={ref}
           value={title}

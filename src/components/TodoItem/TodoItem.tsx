@@ -31,14 +31,28 @@ export const TodoItem: React.FC<Props> = ({
     const titleTrimmed = newTitle.trim();
 
     setNewTitle(titleTrimmed);
-    const updateTodo = { ...todo, title: titleTrimmed };
 
-    if (titleTrimmed === '') {
+    if (!titleTrimmed) {
       onDelete(todo.id);
-    } else if (titleTrimmed !== todo.title) {
-      onPatch(todo.id, updateTodo).then(() => setChangeTitle(false));
-    } else {
+
+      return;
+    }
+
+    if (titleTrimmed === todo.title) {
       setChangeTitle(false);
+
+      return;
+    }
+
+    onPatch(todo.id, { ...todo, title: titleTrimmed }).then(() =>
+      setChangeTitle(false),
+    );
+  };
+
+  const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      setChangeTitle(false);
+      setNewTitle(todo.title);
     }
   };
 
@@ -66,12 +80,7 @@ export const TodoItem: React.FC<Props> = ({
           }}
         >
           <input
-            onKeyUp={event => {
-              if (event.key === 'Escape') {
-                setChangeTitle(false);
-                setNewTitle(todo.title);
-              }
-            }}
+            onKeyUp={handleKeyUp}
             onBlur={handleChangeItem}
             onChange={event => setNewTitle(event.target.value)}
             data-cy="TodoTitleField"
@@ -88,7 +97,6 @@ export const TodoItem: React.FC<Props> = ({
             {newTitle}
           </span>
 
-          {/* Remove button appears only on hover */}
           <button
             type="button"
             className="todo__remove"
@@ -101,7 +109,6 @@ export const TodoItem: React.FC<Props> = ({
         </>
       )}
 
-      {/* overlay will cover the todo while it is being deleted or updated */}
       <div
         data-cy="TodoLoader"
         className={classNames('modal', 'overlay', {

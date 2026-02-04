@@ -1,7 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable jsx-a11y/control-has-associated-label */
 import React, { useEffect, useRef, useState } from 'react';
-import classNames from 'classnames';
 
 import { createTodos, getTodos, patchTodo } from './api/todos';
 import { Todo } from './types/Todo';
@@ -14,6 +13,7 @@ import { TodoList } from './components/TodoList/TodoList';
 import { TodoItem } from './components/TodoItem/TodoItem';
 import { deleteTodo } from './api/todos';
 import { ErrorMessage } from './types/ErrorMessage';
+import { Notification } from './components/Notification/Notification';
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -47,65 +47,50 @@ export const App: React.FC = () => {
 
     setProcessingIds(prev => [...prev, ...neededUpdateIds]);
 
-    const promises = allUpdateTodos.map(todo => {
-      return patchTodo(todo.id, { ...todo, completed: status })
-        .then(responseTodo => {
-          setTodos(currentTodos =>
-            currentTodos.map(t =>
-              t.id === responseTodo.id ? responseTodo : t,
-            ),
-          );
+    const promises = allUpdateTodos.map(todo =>
+      patchTodo(todo.id, { ...todo, completed: status }),
+    );
 
-          return true;
-        })
-        .catch(() => {
-          return false;
-        })
-        .finally(() => {
-          setProcessingIds(prev =>
-            prev.filter(processingId => processingId !== todo.id),
-          );
-        });
-    });
+    Promise.all(promises)
+      .then(updatedTodos => {
+        setTodos(currentTodos =>
+          currentTodos.map(todo => {
+            const updated = updatedTodos.find(u => u.id === todo.id);
 
-    Promise.all(promises).then(results => {
-      if (results.includes(false)) {
+            return updated ? updated : todo;
+          }),
+        );
+      })
+      .catch(() => {
         handleShowError(ErrorMessage.UpdateMessage);
-      }
-    });
+      })
+      .finally(() => {
+        setProcessingIds(prev =>
+          prev.filter(id => !neededUpdateIds.includes(id)),
+        );
+      });
   };
 
   const handleDeleteCompleteAll = () => {
-    const filteredCompleted = todos.filter(
-      element => element.completed === true,
+    const completedTodos = todos.filter(todo => todo.completed);
+    const completedIds = completedTodos.map(todo => todo.id);
+
+    setProcessingIds(prev => [...prev, ...completedIds]);
+
+    const promises = completedIds.map(id =>
+      deleteTodo(id).then(() => {
+        setTodos(current => current.filter(todo => todo.id !== id));
+      }),
     );
 
-    const filteredCompletedIds = filteredCompleted.map(e => e.id);
-
-    setProcessingIds(prev => [...prev, ...filteredCompletedIds]);
-
-    const promises: Promise<boolean>[] = filteredCompletedIds.map(id => {
-      return deleteTodo(id)
-        .then(() => {
-          setTodos(currentTodo => currentTodo.filter(todo => todo.id !== id));
-
-          return true;
-        })
-        .catch(() => {
-          return false;
-        })
-        .finally(() => {
-          setProcessingIds(prev => prev.filter(currentId => currentId !== id));
-        });
-    });
-
-    Promise.all(promises).then(results => {
-      if (results.some(element => element === false)) {
+    Promise.all(promises)
+      .catch(() => {
         handleShowError(ErrorMessage.DeleteMessage);
-      }
-
-      headerRef.current?.focus();
-    });
+      })
+      .finally(() => {
+        setProcessingIds(prev => prev.filter(id => !completedIds.includes(id)));
+        headerRef.current?.focus();
+      });
   };
 
   const handleDeleteTodo = (id: number) => {
@@ -194,18 +179,12 @@ export const App: React.FC = () => {
       });
   }, []);
 
-  const visibleTodos = todos.filter(todo => {
-    switch (filter) {
-      case FilterStatus.Active:
-        return !todo.completed;
-
-      case FilterStatus.Completed:
-        return todo.completed;
-
-      default:
-        return true;
-    }
-  });
+  const visibleTodos = todos.filter(
+    todo =>
+      filter === FilterStatus.All ||
+      (filter === FilterStatus.Active && !todo.completed) ||
+      (filter === FilterStatus.Completed && todo.completed),
+  );
 
   const activeTodosCount = todos.filter(todo => !todo.completed).length;
 
@@ -251,27 +230,12 @@ export const App: React.FC = () => {
             completedTodos={completedTodos}
           />
         )}
-        {/* Hide the footer if there are no todos */}
       </div>
 
-      {/* DON'T use conditional rendering to hide the notification */}
-      {/* Add the 'hidden' class to hide the message smoothly */}
-      <div
-        data-cy="ErrorNotification"
-        className={classNames(
-          'notification is-danger is-light has-text-weight-normal',
-          { hidden: !errorMessage },
-        )}
-      >
-        <button
-          data-cy="HideErrorButton"
-          type="button"
-          className="delete"
-          onClick={() => setErrorMessage(ErrorMessage.DefaultValue)}
-        />
-        {/* show only one message at a time */}
-        {errorMessage}
-      </div>
+      <Notification
+        message={errorMessage}
+        onClose={() => setErrorMessage(ErrorMessage.DefaultValue)}
+      />
     </div>
   );
 };

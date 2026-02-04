@@ -22,43 +22,22 @@ export const Footer: React.FC<Props> = ({
         {activeTodosCount} items left
       </span>
 
-      {/* Active link should have the 'selected' class */}
       <nav className="filter" data-cy="Filter">
-        <a
-          href="#/"
-          className={classNames('filter__link', {
-            selected: filter === FilterStatus.All,
-          })}
-          data-cy="FilterLinkAll"
-          onClick={() => onFilterChange(FilterStatus.All)}
-        >
-          All
-        </a>
-
-        <a
-          href="#/active"
-          className={classNames('filter__link', {
-            selected: filter === FilterStatus.Active,
-          })}
-          data-cy="FilterLinkActive"
-          onClick={() => onFilterChange(FilterStatus.Active)}
-        >
-          Active
-        </a>
-
-        <a
-          href="#/completed"
-          className={classNames('filter__link', {
-            selected: filter === FilterStatus.Completed,
-          })}
-          data-cy="FilterLinkCompleted"
-          onClick={() => onFilterChange(FilterStatus.Completed)}
-        >
-          Completed
-        </a>
+        {Object.values(FilterStatus).map(status => (
+          <a
+            key={status}
+            href={`#/${status !== FilterStatus.All ? status.toLowerCase() : ''}`}
+            className={classNames('filter__link', {
+              selected: filter === status,
+            })}
+            data-cy={`FilterLink${status}`}
+            onClick={() => onFilterChange(status)}
+          >
+            {status}
+          </a>
+        ))}
       </nav>
 
-      {/* this button should be disabled if there are no completed todos */}
       <button
         type="button"
         className="todoapp__clear-completed"
