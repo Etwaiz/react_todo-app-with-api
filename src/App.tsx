@@ -28,18 +28,6 @@ export const App: React.FC = () => {
     setErrorMessage(error);
   };
 
-  useEffect(() => {
-    if (!errorMessage) {
-      return;
-    }
-
-    const timerId = setTimeout(() => {
-      setErrorMessage(ErrorMessage.DefaultValue);
-    }, 3000);
-
-    return () => clearTimeout(timerId);
-  }, [errorMessage]);
-
   const handleToggleTodos = (status: boolean) => {
     const allUpdateTodos = todos.filter(todo => todo.completed === !status);
 
@@ -179,12 +167,21 @@ export const App: React.FC = () => {
       });
   }, []);
 
-  const visibleTodos = todos.filter(
-    todo =>
-      filter === FilterStatus.All ||
-      (filter === FilterStatus.Active && !todo.completed) ||
-      (filter === FilterStatus.Completed && todo.completed),
-  );
+  const getFilteredTodos = (todosToFilter: Todo[], status: FilterStatus) => {
+    return todosToFilter.filter(todo => {
+      switch (status) {
+        case FilterStatus.Active:
+          return !todo.completed;
+        case FilterStatus.Completed:
+          return todo.completed;
+        case FilterStatus.All:
+        default:
+          return true;
+      }
+    });
+  };
+
+  const visibleTodos = getFilteredTodos(todos, filter);
 
   const activeTodosCount = todos.filter(todo => !todo.completed).length;
 

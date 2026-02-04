@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import classNames from 'classnames';
 
 type Props = {
@@ -7,6 +7,16 @@ type Props = {
 };
 
 export const Notification: React.FC<Props> = ({ message, onClose }) => {
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    const timerId = setTimeout(() => onClose(), 3000);
+
+    return () => clearTimeout(timerId);
+  }, [message, onClose]);
+
   return (
     <div
       data-cy="ErrorNotification"
